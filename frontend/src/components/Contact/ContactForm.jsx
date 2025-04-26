@@ -284,7 +284,13 @@ const ContactForm = () => {
             )}
           </div>
 
-          <Button type="submit" variant="success" block loading={isSubmitting}>
+          <Button
+            type="submit"
+            className="bg-primary text-primary-content hover:bg-primary-focus"
+            variant="success"
+            block
+            loading={isSubmitting}
+          >
             Send Message
           </Button>
         </form>

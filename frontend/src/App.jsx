@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useUserStore } from "./stores/useUserStore";
 
 import Navbar from "./components/Navbar";
-import Contactpage from ./pages/ContactPage
+import ContactPage from "./pages/ContactPage";
 import LoadingSpinner from "./components/LoadingSpinner";
 import SignupPage from "./pages/auth/SignupPage";
 import LoginPage from "./pages/auth/LoginPage";
@@ -34,7 +34,7 @@ function App() {
             element={!user ? <LoginPage /> : <Navigate to="/" />}
           />
           <Route path="/" element={<HomePage />} />
-          <Route path="/" element={<ContactPage/>} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* Redirect all other paths to home */}
           <Route path="*" element={<Navigate to="/" />} />
