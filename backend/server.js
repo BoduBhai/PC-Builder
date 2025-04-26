@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 
 import authRoutes from "./routes/auth.route.js";
+import contactRoutes from "./routes/contact.route.js";
 
 import { connectDB } from "./lib/db.js";
 
