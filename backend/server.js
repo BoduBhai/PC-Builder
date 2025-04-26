@@ -3,6 +3,9 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
+
+import adminRoutes from "./routes/admin.route.js";
+import productRoutes from "./routes/product.route.js";
 import authRoutes from "./routes/auth.route.js";
 import contactRoutes from "./routes/contact.route.js";
 
@@ -23,6 +26,8 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
+app.use("/api/admin", adminRoutes);
+app.use("/api/products", productRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact", contactRoutes);
 
