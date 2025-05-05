@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useCartStore } from "../../stores/useCartStore";
 import { ShoppingCart, Eye } from "lucide-react";
-import { toast } from "react-hot-toast";
 import ResponsiveImage from "./ResponsiveImage";
 
 const ProductCard = ({ product }) => {
@@ -35,35 +34,14 @@ const ProductCard = ({ product }) => {
 
   // Check if product is already in cart
   const isInCart = cart.items.some((item) => item.product._id === product._id);
-
-  // Get current quantity in cart if product exists
-  const existingItem = cart.items.find(
-    (item) => item.product._id === product._id,
-  );
-  const currentQuantity = existingItem ? existingItem.quantity : 0;
+  const currentQuantity =
+    cart.items.find((item) => item.product._id === product._id)?.quantity || 0;
 
   const handleAddToCart = async () => {
-    if (!product.stock) {
-      toast.error("This product is out of stock");
-      return;
-    }
+    if (addingToCart || !product.stock) return;
 
-    // If product is already in cart, show a different message
-    if (isInCart) {
-      toast.success(
-        <div>
-          Already in cart ({currentQuantity})<br />
-          <Link to="/cart" className="text-primary underline">
-            View Cart
-          </Link>
-        </div>,
-        { duration: 4000 },
-      );
-      return;
-    }
-
+    setAddingToCart(true);
     try {
-      setAddingToCart(true);
       await addToCart(product._id, 1);
     } catch (error) {
       console.error("Failed to add to cart:", error);
@@ -87,7 +65,7 @@ const ProductCard = ({ product }) => {
     >
       <figure className="relative h-56 overflow-hidden">
         {product.onDiscount && (
-          <div className="absolute top-0 left-0 z-10 bg-red-500 px-2 py-1 font-semibold text-white">
+          <div className="roun rounded-br-box absolute top-0 left-0 z-10 bg-red-500 px-2 py-1 font-semibold text-white">
             {savingsPercentage}% OFF
           </div>
         )}
@@ -114,10 +92,12 @@ const ProductCard = ({ product }) => {
             >
               ৳{product.onDiscount ? product.discountPrice : product.price}
             </span>
-            {product.onDiscount && (
+            {product.onDiscount ? (
               <span className="text-sm line-through opacity-60">
                 ৳{product.price}
               </span>
+            ) : (
+              <span className="invisible text-sm">Placeholder</span>
             )}
           </div>
           {product.stock > 0 ? (

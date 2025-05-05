@@ -1,14 +1,14 @@
-import { useEffect, lazy, Suspense, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 
 import { useProductStore } from "../stores/useProductStore";
 
 import { featuredCategories } from "../utils/constants";
 import { ProductCardSkeleton } from "../components/Skeletons/ProductCardSkeleton";
-const ProductCard = lazy(() => import("../components/ui/ProductCard"));
+import ProductCard from "../components/ui/ProductCard";
 
 const HomePage = () => {
   const MAX_HOMEPAGE_PRODUCTS = 6;
@@ -33,18 +33,26 @@ const HomePage = () => {
 
   return (
     <main className="min-h-screen">
-      <section className="hero bg-base-200 min-h-[80vh]">
+      {/* Hero Section */}
+      <section
+        className="hero bg-base-200 min-h-[80vh]"
+        aria-labelledby="hero-heading"
+      >
         <div className="hero-content flex-col gap-12 lg:flex-row-reverse">
-          <img
-            src="/hero-image.avif"
-            className="max-w-sm rounded-lg shadow-2xl"
-            alt="PC Build"
-            width="384"
-            height="288"
-            loading="eager"
-          />
-          <div>
-            <h1 className="text-5xl font-bold">Build Your Dream PC Today!</h1>
+          <figure>
+            <img
+              src="/hero-image.avif"
+              className="max-w-sm rounded-lg shadow-2xl"
+              alt="Custom PC Build Showcase"
+              width="384"
+              height="288"
+              loading="eager"
+            />
+          </figure>
+          <article>
+            <h1 id="hero-heading" className="text-5xl font-bold">
+              Build Your Dream PC Today!
+            </h1>
             <p className="py-6">
               Get started with the best components for your custom PC build.
               From high-performance gaming rigs to professional workstations, we
@@ -58,14 +66,17 @@ const HomePage = () => {
                 <button className="btn btn-outline">Build a PC</button>
               </Link>
             </div>
-          </div>
+          </article>
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="py-16">
+      <section className="py-16" aria-labelledby="categories-heading">
         <div className="container mx-auto px-4">
-          <h2 className="mb-12 text-center text-3xl font-bold">
+          <h2
+            id="categories-heading"
+            className="mb-12 text-center text-3xl font-bold"
+          >
             Popular Categories
           </h2>
 
@@ -73,7 +84,7 @@ const HomePage = () => {
             {featuredCategories
               .slice(0, INITIAL_CATEGORIES_TO_SHOW)
               .map((category, index) => (
-                <div
+                <article
                   key={index}
                   className="card bg-base-100 shadow-xl transition-all duration-300 hover:shadow-2xl"
                 >
@@ -99,7 +110,7 @@ const HomePage = () => {
                       </Link>
                     </div>
                   </div>
-                </div>
+                </article>
               ))}
           </div>
 
@@ -117,7 +128,7 @@ const HomePage = () => {
                   {featuredCategories
                     .slice(INITIAL_CATEGORIES_TO_SHOW)
                     .map((category, index) => (
-                      <Motion.div
+                      <Motion.article
                         key={index}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -152,7 +163,7 @@ const HomePage = () => {
                             </Link>
                           </div>
                         </div>
-                      </Motion.div>
+                      </Motion.article>
                     ))}
                 </div>
               </Motion.div>
@@ -170,6 +181,8 @@ const HomePage = () => {
                 stiffness: 300,
                 damping: 30,
               }}
+              aria-expanded={showAllCategories}
+              aria-controls="expandable-categories"
             >
               {showAllCategories ? (
                 <>
@@ -188,9 +201,15 @@ const HomePage = () => {
       </section>
 
       {/* Discounted Products Section */}
-      <section className="bg-base-200 py-16">
+      <section
+        className="bg-base-200 py-16"
+        aria-labelledby="special-offers-heading"
+      >
         <div className="container mx-auto px-4">
-          <h2 className="mb-6 text-center text-3xl font-bold">
+          <h2
+            id="special-offers-heading"
+            className="mb-6 text-center text-3xl font-bold"
+          >
             Special Offers
           </h2>
           <p className="mb-8 text-center text-lg">
@@ -205,9 +224,7 @@ const HomePage = () => {
                 .map((_, index) => <ProductCardSkeleton key={index} />)
             ) : visibleProducts && visibleProducts.length > 0 ? (
               visibleProducts.map((product) => (
-                <Suspense key={product._id} fallback={<ProductCardSkeleton />}>
-                  <ProductCard product={product} />
-                </Suspense>
+                <ProductCard key={product._id} product={product} />
               ))
             ) : (
               <div className="col-span-3 py-12 text-center">
@@ -231,34 +248,17 @@ const HomePage = () => {
             </div>
           )}
 
-          <div className="mt-12 flex justify-center">
+          <aside className="mx-auto mt-4 flex flex-col items-center justify-center gap-1 text-center">
+            <p className="text-lg font-medium tracking-widest">
+              Can't find what you're looking for?
+            </p>
             <Link
               to="/products"
-              className="group flex flex-col items-center transition-all hover:scale-105 hover:transform"
+              className="text-primary text-md flex items-center gap-2 transition-all hover:scale-105 hover:transform"
             >
-              <p className="mb-3 text-center text-lg">
-                Can't find what you're looking for?
-              </p>
-              <div className="text-primary flex items-center gap-2 font-medium">
-                <span>Browse All Products</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="transition-transform duration-300 group-hover:translate-x-1"
-                >
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                  <polyline points="12 5 19 12 12 19"></polyline>
-                </svg>
-              </div>
+              Browse All Products <ArrowRight className="h-5 w-5" />
             </Link>
-          </div>
+          </aside>
         </div>
       </section>
     </main>

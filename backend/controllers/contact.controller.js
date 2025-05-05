@@ -1,5 +1,10 @@
 import nodemailer from "nodemailer";
 
+/**
+ * Send contact form message to admin's email
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
 const sendContactMessage = async (req, res) => {
     try {
         const { name, email, subject, message } = req.body;

@@ -45,13 +45,13 @@ const orderSchema = new mongoose.Schema(
             country: {
                 type: String,
                 required: true,
-                default: "United States",
+                default: "Bangladesh",
             },
         },
         paymentMethod: {
             type: String,
             required: true,
-            enum: ["card", "bank_transfer"],
+            enum: ["card", "bank_transfer", "pay_on_pickup"],
         },
         paymentStatus: {
             type: String,
@@ -85,7 +85,31 @@ const orderSchema = new mongoose.Schema(
         paymentDetails: {
             transactionId: String,
             paymentTime: Date,
+            securityFingerprint: String,
+            method: String,
+            card: {
+                last4: String,
+                brand: String,
+                expiryMonth: String,
+                expiryYear: String,
+                holderName: String,
+            },
+            bankTransfer: {
+                bankName: String,
+                accountName: String,
+                referenceNumber: String,
+            },
         },
+        timeline: [
+            {
+                status: String,
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+                note: String,
+            },
+        ],
     },
     { timestamps: true }
 );

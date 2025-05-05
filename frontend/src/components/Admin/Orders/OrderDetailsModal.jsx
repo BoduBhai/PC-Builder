@@ -1,10 +1,11 @@
 // filepath: c:\Users\HP\Desktop\PC-Builders\frontend\src\components\Admin\Orders\OrderDetailsModal.jsx
-import React from "react";
-import { FileText, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { FileText, X, Shield, Clock } from "lucide-react";
 import { formatDate } from "../../../utils/dateUtils";
 import OrderStatusButtons from "./OrderStatusButtons";
 import PaymentStatusButtons from "./PaymentStatusButtons";
 import OrderItemsList from "./OrderItemsList";
+import usePaymentService from "../../../stores/usePaymentService";
 
 // Print icon component
 const PrintIcon = ({ size = 24, className = "" }) => (
@@ -38,7 +39,67 @@ const OrderDetailsModal = ({
   handleUpdateOrderStatus,
   handleUpdatePaymentStatus,
 }) => {
-  if (!order) return null;
+  const { getOrderPaymentDetails, loading: paymentDetailsLoading } =
+    usePaymentService();
+  const [paymentDetails, setPaymentDetails] = useState(null);
+  const [updatedOrder, setUpdatedOrder] = useState(null);
+  const [timelineKey, setTimelineKey] = useState(Date.now());
+
+  // Use the updated order if available, otherwise use the original order
+  const displayOrder = updatedOrder || order;
+
+  // Reset state when a new order is selected
+  useEffect(() => {
+    if (order) {
+      setUpdatedOrder(order);
+      setTimelineKey(Date.now());
+    }
+  }, [order]);
+
+  // Custom handlers to update statuses and trigger timeline refresh
+  const handleOrderStatusUpdate = async (orderId, status) => {
+    try {
+      setPaymentDetails(null); // Clear existing data to show loading state
+      await handleUpdateOrderStatus(orderId, status);
+      // Force a refresh of the timeline after status update
+      const details = await getOrderPaymentDetails(orderId);
+      setPaymentDetails(details);
+      setTimelineKey(Date.now()); // Force re-render of timeline section
+    } catch (error) {
+      console.error("Failed to update order status:", error);
+    }
+  };
+
+  const handlePaymentStatusUpdate = async (orderId, status) => {
+    try {
+      setPaymentDetails(null); // Clear existing data to show loading state
+      await handleUpdatePaymentStatus(orderId, status);
+      // Force a refresh of the timeline after status update
+      const details = await getOrderPaymentDetails(orderId);
+      setPaymentDetails(details);
+      setTimelineKey(Date.now()); // Force re-render of timeline section
+    } catch (error) {
+      console.error("Failed to update payment status:", error);
+    }
+  };
+
+  // Fetch enhanced payment details when order is selected
+  useEffect(() => {
+    if (displayOrder?._id) {
+      const fetchPaymentDetails = async () => {
+        try {
+          const details = await getOrderPaymentDetails(displayOrder._id);
+          setPaymentDetails(details);
+        } catch (error) {
+          console.error("Failed to fetch payment details:", error);
+        }
+      };
+
+      fetchPaymentDetails();
+    }
+  }, [displayOrder?._id, getOrderPaymentDetails, timelineKey]);
+
+  if (!displayOrder) return null;
 
   return (
     <dialog id="order_details_modal" className="modal">
@@ -62,15 +123,20 @@ const OrderDetailsModal = ({
             <div>
               <p className="text-sm text-gray-500">Order ID:</p>
               <p className="font-mono font-bold">
-                #{order._id.slice(-8)}
-                <span className="block text-xs text-gray-500" title={order._id}>
-                  Full ID: {order._id}
+                #{displayOrder._id.slice(-8)}
+                <span
+                  className="block text-xs text-gray-500"
+                  title={displayOrder._id}
+                >
+                  Full ID: {displayOrder._id}
                 </span>
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Order Date:</p>
-              <p className="font-semibold">{formatDate(order.createdAt)}</p>
+              <p className="font-semibold">
+                {formatDate(displayOrder.createdAt)}
+              </p>
             </div>
           </div>
 
@@ -98,15 +164,15 @@ const OrderDetailsModal = ({
               <div className="bg-base-200 rounded-lg p-4 shadow-sm">
                 <p>
                   <span className="font-semibold">Name:</span>{" "}
-                  {order.user.fname} {order.user.lname}
+                  {displayOrder.user.fname} {displayOrder.user.lname}
                 </p>
                 <p>
                   <span className="font-semibold">Email:</span>{" "}
-                  {order.user.email}
+                  {displayOrder.user.email}
                 </p>
                 <p>
                   <span className="font-semibold">Phone:</span>{" "}
-                  {order.user.phone || "N/A"}
+                  {displayOrder.user.phone || "N/A"}
                 </p>
               </div>
             </div>
@@ -133,12 +199,13 @@ const OrderDetailsModal = ({
                 Shipping Address
               </h4>
               <div className="bg-base-200 rounded-lg p-4 shadow-sm">
-                <p>{order.shippingAddress.street}</p>
+                <p>{displayOrder.shippingAddress.street}</p>
                 <p>
-                  {order.shippingAddress.city}, {order.shippingAddress.state}{" "}
-                  {order.shippingAddress.zipCode}
+                  {displayOrder.shippingAddress.city},{" "}
+                  {displayOrder.shippingAddress.state}{" "}
+                  {displayOrder.shippingAddress.zipCode}
                 </p>
-                <p>{order.shippingAddress.country}</p>
+                <p>{displayOrder.shippingAddress.country}</p>
               </div>
             </div>
           </div>
@@ -168,10 +235,10 @@ const OrderDetailsModal = ({
               </h4>
               <div className="bg-base-200 rounded-lg p-4 shadow-sm">
                 <OrderStatusButtons
-                  currentStatus={order.orderStatus}
-                  isProcessing={processingOrderId === order._id}
+                  currentStatus={displayOrder.orderStatus}
+                  isProcessing={processingOrderId === displayOrder._id}
                   onStatusChange={(status) =>
-                    handleUpdateOrderStatus(order._id, status)
+                    handleOrderStatusUpdate(displayOrder._id, status)
                   }
                 />
               </div>
@@ -197,13 +264,224 @@ const OrderDetailsModal = ({
               </h4>
               <div className="bg-base-200 rounded-lg p-4 shadow-sm">
                 <PaymentStatusButtons
-                  currentStatus={order.paymentStatus}
-                  isProcessing={processingOrderId === order._id}
+                  currentStatus={displayOrder.paymentStatus}
+                  isProcessing={processingOrderId === displayOrder._id}
                   onStatusChange={(status) =>
-                    handleUpdatePaymentStatus(order._id, status)
+                    handlePaymentStatusUpdate(displayOrder._id, status)
                   }
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Enhanced Payment Details */}
+          <div className="mb-6">
+            <h4 className="mb-2 flex items-center gap-1 font-semibold">
+              <Shield size={18} />
+              Payment Details
+            </h4>
+            <div className="bg-base-200 rounded-lg p-4 shadow-sm">
+              {paymentDetailsLoading ? (
+                <div className="flex justify-center py-4">
+                  <span className="loading loading-spinner loading-md"></span>
+                </div>
+              ) : !paymentDetails ? (
+                <p className="text-center text-sm text-gray-500">
+                  Payment details unavailable
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2">
+                    <span className="text-gray-600">Payment Method:</span>
+                    <span className="font-medium">
+                      {displayOrder.paymentMethod === "card"
+                        ? "Credit/Debit Card"
+                        : "Bank Transfer"}
+                    </span>
+
+                    <span className="text-gray-600">Transaction ID:</span>
+                    <span className="font-mono text-sm">
+                      {paymentDetails.paymentDetails?.transactionId || "N/A"}
+                    </span>
+
+                    <span className="text-gray-600">Payment Time:</span>
+                    <span>
+                      {paymentDetails.paymentDetails?.paymentTime
+                        ? formatDate(paymentDetails.paymentDetails.paymentTime)
+                        : "N/A"}
+                    </span>
+                  </div>
+
+                  {/* Method-specific details */}
+                  {displayOrder.paymentMethod === "card" &&
+                    paymentDetails.paymentDetails?.card && (
+                      <div className="border-t pt-3">
+                        <h5 className="mb-2 font-medium">Card Details</h5>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <span className="text-gray-600">Card Brand:</span>
+                          <span>
+                            {paymentDetails.paymentDetails.card.brand ||
+                              "Unknown"}
+                          </span>
+
+                          <span className="text-gray-600">Last 4 digits:</span>
+                          <span className="font-mono">
+                            {paymentDetails.paymentDetails.card.last4 || "xxxx"}
+                          </span>
+
+                          <span className="text-gray-600">Cardholder:</span>
+                          <span>
+                            {paymentDetails.paymentDetails.card.holderName ||
+                              "N/A"}
+                          </span>
+
+                          <span className="text-gray-600">Expiry:</span>
+                          <span>
+                            {paymentDetails.paymentDetails.card.expiryMonth &&
+                            paymentDetails.paymentDetails.card.expiryYear
+                              ? `${paymentDetails.paymentDetails.card.expiryMonth}/${paymentDetails.paymentDetails.card.expiryYear.substr(
+                                  2,
+                                )}`
+                              : "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                  {displayOrder.paymentMethod === "bank_transfer" &&
+                    paymentDetails.paymentDetails?.bankTransfer && (
+                      <div className="border-t pt-3">
+                        <h5 className="mb-2 font-medium">Bank Details</h5>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <span className="text-gray-600">Bank Name:</span>
+                          <span>
+                            {paymentDetails.paymentDetails.bankTransfer
+                              .bankName || "N/A"}
+                          </span>
+
+                          <span className="text-gray-600">Account Name:</span>
+                          <span>
+                            {paymentDetails.paymentDetails.bankTransfer
+                              .accountName || "N/A"}
+                          </span>
+
+                          <span className="text-gray-600">
+                            Reference Number:
+                          </span>
+                          <span className="font-mono">
+                            {paymentDetails.paymentDetails.bankTransfer
+                              .referenceNumber || "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                  {/* Payment Timeline - Enhanced to show all timeline events */}
+                  <div className="mt-3 border-t pt-3">
+                    <h5 className="mb-3 flex items-center gap-1 font-medium">
+                      <Clock size={16} />
+                      Order Timeline
+                    </h5>
+                    <div className="relative ml-2">
+                      {/* Check if paymentDetails has timeline and render each event */}
+                      {paymentDetails &&
+                      paymentDetails.timeline &&
+                      paymentDetails.timeline.length > 0 ? (
+                        paymentDetails.timeline.map((event, index) => (
+                          <div
+                            key={index}
+                            className="mb-6 flex items-start gap-3"
+                          >
+                            <div className="relative">
+                              {/* Use different colors based on event status type */}
+                              <div
+                                className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full ${
+                                  event.status === "created"
+                                    ? "bg-primary"
+                                    : event.status === "cancelled"
+                                      ? "bg-error"
+                                      : event.status?.startsWith(
+                                            "payment_completed",
+                                          )
+                                        ? "bg-success"
+                                        : event.status?.startsWith("payment_")
+                                          ? "bg-warning"
+                                          : event.status?.startsWith(
+                                                "order_delivered",
+                                              )
+                                            ? "bg-success"
+                                            : event.status?.startsWith(
+                                                  "order_shipped",
+                                                )
+                                              ? "bg-info"
+                                              : "bg-secondary"
+                                }`}
+                              >
+                                <span className="h-2 w-2 rounded-full bg-white"></span>
+                              </div>
+                              {/* Add connecting line if not the last item */}
+                              {index < paymentDetails.timeline.length - 1 && (
+                                <div className="absolute top-7 bottom-0 left-1/2 h-10 w-0.5 -translate-x-1/2 bg-gray-200"></div>
+                              )}
+                            </div>
+                            <div>
+                              {/* Format the status for display */}
+                              <div className="font-medium">
+                                {event.status === "created"
+                                  ? "Order Created"
+                                  : event.status === "cancelled"
+                                    ? "Order Cancelled"
+                                    : event.status?.startsWith("payment_")
+                                      ? `Payment ${event.status
+                                          .replace("payment_", "")
+                                          .charAt(0)
+                                          .toUpperCase()}${event.status
+                                          .replace("payment_", "")
+                                          .slice(1)}`
+                                      : event.status?.startsWith("order_")
+                                        ? `Order ${event.status
+                                            .replace("order_", "")
+                                            .charAt(0)
+                                            .toUpperCase()}${event.status
+                                            .replace("order_", "")
+                                            .slice(1)}`
+                                        : event.status.charAt(0).toUpperCase() +
+                                          event.status.slice(1)}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {formatDate(event.timestamp)}
+                              </div>
+                              {event.note && (
+                                <div className="mt-1 text-sm text-gray-600">
+                                  {event.note}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        // Fallback to show at least the creation event if no detailed timeline
+                        <div className="flex items-start gap-3">
+                          <div className="relative">
+                            <div className="bg-primary mt-0.5 flex h-6 w-6 items-center justify-center rounded-full">
+                              <span className="h-2 w-2 rounded-full bg-white"></span>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium">Order Created</div>
+                            <div className="text-sm text-gray-500">
+                              {formatDate(displayOrder.createdAt)}
+                            </div>
+                            <div className="mt-1 text-sm text-gray-600">
+                              Order placed successfully
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -228,10 +506,10 @@ const OrderDetailsModal = ({
                 <path d="M22 7v3a2 2 0 0 1-2 2v0a2 2 0 0 1-2-2V7"></path>
                 <path d="M2 7v3a2 2 0 0 0 2 2v0a2 2 0 0 0 2-2V7"></path>
               </svg>
-              Order Items ({order.items.length})
+              Order Items ({displayOrder.items.length})
             </h4>
             <OrderItemsList
-              items={order.items}
+              items={displayOrder.items}
               expandedItems={expandedItems}
               toggleItemExpansion={toggleItemExpansion}
             />
@@ -251,7 +529,7 @@ const OrderDetailsModal = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path>
+                <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"></path>
                 <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
                 <path d="M12 17.5v-11"></path>
               </svg>
@@ -260,16 +538,22 @@ const OrderDetailsModal = ({
             <div className="bg-base-200 rounded-lg p-4 shadow-sm">
               <div className="grid grid-cols-2 gap-2">
                 <span className="text-gray-600">Subtotal</span>
-                <span className="text-right">৳{order.subtotal.toFixed(2)}</span>
+                <span className="text-right">
+                  ৳{displayOrder.subtotal.toFixed(2)}
+                </span>
                 <span className="text-gray-600">Tax</span>
-                <span className="text-right">৳{order.tax.toFixed(2)}</span>
+                <span className="text-right">
+                  ৳{displayOrder.tax.toFixed(2)}
+                </span>
                 <span className="text-gray-600">Shipping</span>
-                <span className="text-right">৳{order.shipping.toFixed(2)}</span>
+                <span className="text-right">
+                  ৳{displayOrder.shipping.toFixed(2)}
+                </span>
                 <span className="mt-1 border-t pt-2 text-base font-semibold">
                   Total
                 </span>
                 <span className="mt-1 border-t pt-2 text-right text-base font-semibold">
-                  ৳{order.total.toFixed(2)}
+                  ৳{displayOrder.total.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -284,7 +568,7 @@ const OrderDetailsModal = ({
             className="btn btn-primary"
             onClick={() => {
               // Implement any action you want here (e.g., print order, export, etc.)
-              console.log("Action on order", order._id);
+              window.print();
             }}
           >
             <PrintIcon size={18} />
